@@ -1,26 +1,129 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-gold-50: #fdfaf2;
+  --color-gold-100: #fbf5e6;
+  --color-gold-200: #f5e7bf;
+  --color-gold-300: #edd18c;
+  --color-gold-400: #e2b453;
+  --color-gold-500: #d4af37; /* Gold principal */
+  --color-gold-600: #bd9328;
+  --color-gold-700: #9e751e;
+  --color-gold-800: #7d591a;
+  --color-gold-900: #5e4114;
+  --color-gold-950: #3c270b;
+
+  --color-dark-50: #f6f6f6;
+  --color-dark-100: #e7e7e8;
+  --color-dark-200: #cbcbcd;
+  --color-dark-300: #a2a2a6;
+  --color-dark-400: #73737a;
+  --color-dark-500: #56565c;
+  --color-dark-600: #3f3f45;
+  --color-dark-700: #2d2d32;
+  --color-dark-800: #1a1a1f;
+  --color-dark-900: #0f0f12;
+  --color-dark-950: #070709;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Opcional: Forzar scroll nativo suave estilo iOS */
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background-color: var(--color-dark-950);
+  color: #ffffff;
+  font-family: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  user-select: none; /* Mejorar sensación de app nativa */
+  -webkit-tap-highlight-color: transparent; /* Quitar destello al pulsar en iOS */
+  scrollbar-width: none; /* Ocultar scroll en Firefox */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Ocultar barra de scroll en Chrome/Safari */
+body::-webkit-scrollbar {
+  display: none;
+}
+
+/* Clases de utilidad premium */
+.glass-panel {
+  background: rgba(26, 26, 31, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(212, 175, 55, 0.15);
+}
+
+.glass-panel-heavy {
+  background: rgba(15, 15, 18, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+}
+
+.gold-glow {
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.15);
+}
+
+.gold-glow-strong {
+  box-shadow: 0 0 25px rgba(212, 175, 55, 0.35);
+}
+
+.barber-pole-border {
+  position: relative;
+  overflow: hidden;
+}
+
+.barber-pole-border::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: repeating-linear-gradient(
+    -45deg,
+    #d4af37,
+    #d4af37 10px,
+    #070709 10px,
+    #070709 20px,
+    #ffffff 20px,
+    #ffffff 30px,
+    #070709 30px,
+    #070709 40px
+  );
+  background-size: 200% 100%;
+  animation: barberPole 15s linear infinite;
+}
+
+@keyframes barberPole {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 200% 0%;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Estilo personalizado de calendario móvil */
+.calendar-grid-btn {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.calendar-grid-btn:active {
+  transform: scale(0.92);
+}
+
+/* Micro-animación de aparición */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
