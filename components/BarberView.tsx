@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { db, Servicio, Cita, EstadoCita } from "@/lib/supabase";
+import { db, Servicio, Cita, EstadoCita, Perfil } from "@/lib/supabase";
 import {
   Calendar,
   Check,
@@ -26,6 +26,7 @@ export default function BarberView({ onMutationTrigger, mutationKey }: BarberVie
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [loading, setLoading] = useState(true);
   const [citasLoadingMap, setCitasLoadingMap] = useState<Record<string, boolean>>({});
+  const [perfil, setPerfil] = useState<Perfil | null>(null);
 
   // Estados para Edición de Servicios
   const [editingServicioId, setEditingServicioId] = useState<string | null>(null);
@@ -44,7 +45,9 @@ export default function BarberView({ onMutationTrigger, mutationKey }: BarberVie
   const cargarDatos = async () => {
     setLoading(true);
     try {
-      const dataCitas = await db.getCitas("barbero", "barbero-1");
+      const perfilDemo = await db.getPerfilActual("barbero");
+      setPerfil(perfilDemo);
+      const dataCitas = await db.getCitas("barbero", perfilDemo.id);
       const dataServicios = await db.getServicios();
       setCitas(dataCitas);
       setServicios(dataServicios);
@@ -181,7 +184,7 @@ export default function BarberView({ onMutationTrigger, mutationKey }: BarberVie
       <div className="flex justify-between items-center bg-dark-900/60 p-4 rounded-2xl border border-dark-800">
         <div>
           <p className="text-gold-400 text-xs tracking-wider uppercase font-semibold">Barbero Administrador</p>
-          <h2 className="text-xl font-bold text-white font-outfit mt-0.5">Carlos Gómez 💈</h2>
+          <h2 className="text-xl font-bold text-white font-outfit mt-0.5">{perfil?.nombre || "Cargando..."} 💈</h2>
         </div>
         <button
           onClick={cargarDatos}

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import ClientView from "@/components/ClientView";
 import BarberView from "@/components/BarberView";
+import { useRouter } from "next/navigation";
 import {
   Scissors,
   Sparkles,
@@ -11,10 +12,13 @@ import {
   Info,
   Check,
   LogIn,
+  LogOut,
 } from "lucide-react";
-import { isSupabaseConfigured } from "@/lib/supabase";
+import { isSupabaseConfigured, db } from "@/lib/supabase";
 
 export default function Home() {
+  const router = useRouter();
+  
   // Estado para alternar entre roles de pruebas
   const [currentRole, setCurrentRole] = useState<"cliente" | "barbero">(
     "cliente",
@@ -22,6 +26,16 @@ export default function Home() {
 
   // Sincronización de mutaciones de datos en tiempo real
   const [mutationKey, setMutationKey] = useState<number>(0);
+  const [activeUser, setActiveUser] = useState<any>(null);
+
+  // Cargar sesión del usuario activo
+  useEffect(() => {
+    const session = db.getUsuarioSesion();
+    setActiveUser(session);
+    if (session) {
+      setCurrentRole(session.rol);
+    }
+  }, [mutationKey]);
 
   // Estados para la instalación de la PWA
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -87,7 +101,30 @@ export default function Home() {
         <div className="hidden sm:block absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-dark-800 rounded-b-2xl z-50"></div>
 
         {/* Cabecera / Banner Estilo Barber Pole */}
-        <header className="barber-pole-border pt-7 pb-4 bg-dark-900 border-b border-dark-800 flex flex-col items-center gap-1.5 shrink-0 z-40">
+        <header className="barber-pole-border pt-7 pb-4 bg-dark-900 border-b border-dark-800 flex flex-col items-center gap-1.5 shrink-0 z-40 relative">
+          
+          {/* Botón de Sesión (Login/Logout) */}
+          {activeUser ? (
+            <button
+              onClick={async () => {
+                await db.cerrarSesion();
+                triggerMutation();
+              }}
+              className="absolute top-7 right-5 p-2 rounded-xl bg-dark-950/40 text-zinc-500 hover:text-gold-400 border border-dark-850 hover:border-gold-500/20 transition shrink-0 cursor-pointer"
+              title="Cerrar Sesión"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          ) : (
+            <button
+              onClick={() => router.push("/login")}
+              className="absolute top-7 right-5 p-2 rounded-xl bg-dark-950/40 text-zinc-500 hover:text-gold-400 border border-dark-850 hover:border-gold-500/20 transition shrink-0 cursor-pointer"
+              title="Iniciar Sesión / Registrarse"
+            >
+              <LogIn className="w-4 h-4" />
+            </button>
+          )}
+
           <div className="flex items-center gap-2 mt-1">
             <div className="w-6 h-6 rounded-full bg-gold-500 flex items-center justify-center">
               <Scissors className="w-3.5 h-3.5 text-black shrink-0" />

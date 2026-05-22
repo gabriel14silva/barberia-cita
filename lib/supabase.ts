@@ -217,9 +217,22 @@ export const db = {
         query = query.eq("cliente_id", usuarioId);
       }
 
+      interface DbCita {
+        id: string;
+        cliente_id: string;
+        barbero_id: string;
+        servicio_id: number;
+        fecha_hora: string;
+        estado: EstadoCita;
+        created_at: string;
+        cliente: { nombre: string; telefono: string } | null;
+        barbero: { nombre: string } | null;
+        servicio: { nombre: string; precio: number } | null;
+      }
+
       const { data, error } = await query.order("fecha_hora", { ascending: true });
       if (!error && data) {
-        return data.map((item: any) => ({
+        return (data as unknown as DbCita[]).map((item) => ({
           id: item.id,
           cliente_id: item.cliente_id,
           cliente_nombre: item.cliente?.nombre,
@@ -303,13 +316,167 @@ export const db = {
     }
     return false;
   },
-
-  // --- OBTENER PERFIL DE PRUEBA ---
+  // --- OBTENER PERFIL ACTUAL (SOPORTE SESIÓN HÍBRIDA) ---
   async getPerfilActual(rol: RolUsuario): Promise<Perfil> {
+    const activeSession = getStorageItem<Perfil | null>("chata_current_user", null);
+    if (activeSession && activeSession.rol === rol) {
+      return activeSession;
+    }
+    
+    // Fallback por defecto si no hay sesión activa coincidente con el rol
     if (rol === "cliente") {
       return DEFAULT_CLIENTE;
     } else {
       return DEFAULT_BARBEROS[0];
     }
+  },
+
+  // --- INICIAR SESIÓN (SUPABASE / SIMULACIÓN OFF-LINE) ---
+  async iniciarSesion(email: string, password: string): Promise<{ user: { id: string; email?: string; user_metadata?: unknown } | null; profile: Perfil | null; error: string | null }> {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        return { user: null, profile: null, error: error.message };
+      }
+
+      if (data && data.user) {
+        // Traer perfil de la base de datos
+        const { data: profile } = await supabase
+          .from("perfiles")
+          .select("*")
+          .eq("id", data.user.id)
+          .single();
+
+        const perfilUsuario = profile ? (profile as Perfil) : null;
+        if (perfilUsuario) {
+          setStorageItem("chata_current_user", perfilUsuario);
+        }
+
+        return { user: data.user, profile: perfilUsuario, error: null };
+      }
+    }
+
+    // --- MODO DEMO LOCALSTORAGE ---
+    // Simular un retraso corto de red para excelente UX de carga
+    await new Promise((r) => setTimeout(r, 600));
+
+    // Determinar rol basado en el correo
+    const emailLower = email.toLowerCase().trim();
+    let rol: RolUsuario = "cliente";
+    let nombre = "Cliente Demo";
+    let telefono = "+1 555-0144";
+    let id = "cliente-demo";
+
+    if (emailLower.includes("barbero")) {
+      rol = "barbero";
+      nombre = "Carlos Gómez (Barbero Senior)";
+      telefono = "+1 555-0199";
+      id = "barbero-1";
+    } else {
+      // Intentar buscar si se registró un usuario con ese email en LocalStorage
+      const registeredUsers = getStorageItem<Perfil[]>("chata_registered_users", []);
+      const match = registeredUsers.find((u) => u.id === emailLower || u.nombre.toLowerCase() === emailLower);
+      if (match) {
+        rol = match.rol;
+        nombre = match.nombre;
+        telefono = match.telefono;
+        id = match.id;
+      } else if (emailLower !== "cliente@lachata.com" && emailLower !== "cliente") {
+        // Si es cualquier otro correo, registrarlo dinámicamente como cliente nuevo
+        nombre = email.split("@")[0];
+        nombre = nombre.charAt(0).toUpperCase() + nombre.slice(1);
+        id = "user-" + Math.random().toString(36).substr(2, 9);
+      }
+    }
+
+    const perfilDemo: Perfil = { id, nombre, telefono, rol };
+    setStorageItem("chata_current_user", perfilDemo);
+
+    return { 
+      user: { id, email, user_metadata: { nombre, telefono } }, 
+      profile: perfilDemo, 
+      error: null 
+    };
+  },
+
+  // --- REGISTRARSE (SUPABASE / SIMULACIÓN OFF-LINE) ---
+  async registrarUsuario(
+    email: string, 
+    password: string, 
+    nombre: string, 
+    telefono: string
+  ): Promise<{ user: { id: string; email?: string; user_metadata?: unknown } | null; profile: Perfil | null; error: string | null }> {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            nombre,
+            telefono,
+          },
+        },
+      });
+
+      if (error) {
+        return { user: null, profile: null, error: error.message };
+      }
+
+      if (data && data.user) {
+        // En Supabase real, el trigger creará el perfil. Devolvemos el perfil mock temporal
+        const perfilNuevo: Perfil = {
+          id: data.user.id,
+          nombre,
+          telefono,
+          rol: "cliente",
+        };
+        setStorageItem("chata_current_user", perfilNuevo);
+        return { user: data.user, profile: perfilNuevo, error: null };
+      }
+    }
+
+    // --- MODO DEMO LOCALSTORAGE ---
+    await new Promise((r) => setTimeout(r, 600));
+
+    const id = "user-" + Math.random().toString(36).substr(2, 9);
+    const nuevoPerfil: Perfil = {
+      id,
+      nombre,
+      telefono,
+      rol: "cliente",
+    };
+
+    // Guardar en la base de datos de registrados del mock
+    const registeredUsers = getStorageItem<Perfil[]>("chata_registered_users", []);
+    registeredUsers.push(nuevoPerfil);
+    setStorageItem("chata_registered_users", registeredUsers);
+    
+    // Iniciar sesión con este perfil
+    setStorageItem("chata_current_user", nuevoPerfil);
+
+    return { 
+      user: { id, email, user_metadata: { nombre, telefono } }, 
+      profile: nuevoPerfil, 
+      error: null 
+    };
+  },
+
+  // --- CERRAR SESIÓN ---
+  async cerrarSesion(): Promise<void> {
+    if (isSupabaseConfigured && supabase) {
+      await supabase.auth.signOut();
+    }
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("chata_current_user");
+    }
+  },
+
+  // --- OBTENER SESIÓN DE USUARIO ACTIVO ---
+  getUsuarioSesion(): Perfil | null {
+    return getStorageItem<Perfil | null>("chata_current_user", null);
   }
 };

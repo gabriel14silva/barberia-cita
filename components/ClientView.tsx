@@ -27,6 +27,7 @@ export default function ClientView({ onMutationTrigger, mutationKey }: ClientVie
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const [perfil, setPerfil] = useState<Perfil | null>(null);
 
   // Estado del Formulario de Agendamiento
   const [selectedServicio, setSelectedServicio] = useState<Servicio | null>(null);
@@ -48,6 +49,7 @@ export default function ClientView({ onMutationTrigger, mutationKey }: ClientVie
       const dataServicios = await db.getServicios();
       const dataBarberos = await db.getBarberos();
       const perfilDemo = await db.getPerfilActual("cliente");
+      setPerfil(perfilDemo);
       const dataCitas = await db.getCitas("cliente", perfilDemo.id);
 
       setServicios(dataServicios);
@@ -192,7 +194,7 @@ export default function ClientView({ onMutationTrigger, mutationKey }: ClientVie
       <div className="flex justify-between items-center bg-dark-900/60 p-4 rounded-2xl border border-dark-800">
         <div>
           <p className="text-zinc-400 text-xs tracking-wider uppercase font-semibold">Cliente Premium</p>
-          <h2 className="text-xl font-bold text-white font-outfit mt-0.5">Mateo Pérez</h2>
+          <h2 className="text-xl font-bold text-white font-outfit mt-0.5">{perfil?.nombre || "Cargando..."}</h2>
         </div>
         <button
           onClick={cargarDatos}
