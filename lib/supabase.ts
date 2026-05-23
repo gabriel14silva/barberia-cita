@@ -36,14 +36,19 @@ export interface Cita {
   created_at?: string;
 }
 
-// Variables de entorno
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+// Variables de entorno con limpieza de espacios accidentales
+const SUPABASE_URL = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
+const SUPABASE_ANON_KEY = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "").trim();
 
+// Un token Anon Key de Supabase real es siempre un JWT firmado que empieza con "eyJ"
+// y tiene una longitud extensa. Esto evita configurar accidentalmente el "Project Reference ID"
+// como la Anon Key, previniendo errores de "Invalid API key" en el cliente.
 export const isSupabaseConfigured =
-  SUPABASE_URL.length > 0 && SUPABASE_ANON_KEY.length > 0;
+  SUPABASE_URL.length > 0 &&
+  SUPABASE_ANON_KEY.length > 0 &&
+  SUPABASE_ANON_KEY.startsWith("eyJ");
 
-// Cliente de Supabase (solo se inicializa si están las credenciales)
+// Cliente de Supabase (solo se inicializa si están las credenciales correctas)
 export const supabase = isSupabaseConfigured
   ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   : null;
